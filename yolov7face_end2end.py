@@ -5,6 +5,9 @@ import numpy as np
 import onnxruntime as ort
 import torch
 import torchvision
+import pdb
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 from PIL import Image
 from pathlib import Path
@@ -75,6 +78,7 @@ def non_max_suppression(
     Returns:
          list of detections, on (n,6) tensor per image [xyxy, conf, cls]
     """
+    # pdb.set_trace()
 
     if isinstance(prediction, (list, tuple)):  # YOLOv5 model in validation model, output = (inference_out, loss_out)
         prediction = prediction[0]  # select only inference output
@@ -131,6 +135,9 @@ def non_max_suppression(
             i, j = (x[:, 5:mi] > conf_thres).nonzero(as_tuple=False).T
             x = torch.cat((box[i], x[i, 5 + j, None], j[:, None].float(), mask[i]), 1)
         else:  # best class only
+            print(x.shape)
+            print(mi) 
+            pdb.set_trace()
             conf, j = x[:, 5:mi].max(1, keepdim=True)
             x = torch.cat((box, conf, j.float(), mask), 1)[conf.view(-1) > conf_thres]
 
@@ -202,6 +209,8 @@ def run(session, model_path, img_path, use_cuda, end2end_times, run_times, visua
     out = torch.from_numpy(out[0]) if isinstance(out[0], np.ndarray) else out
     out = non_max_suppression(out, 0.25, 0.45, max_det=1000)
 
+    pdb.set_trace()
+
     for i, det in enumerate(out[0].cpu().numpy()):
         x0, y0, x1, y1, score, cls_id = det
         ratio, dwdh = resize_data[0][1:]
@@ -217,7 +226,7 @@ def run(session, model_path, img_path, use_cuda, end2end_times, run_times, visua
             name = names[cls_id]
             color = colors[name]
             name += ' '+str(score)
-            cv2.rectangle(image, box[:2], box[2:], color, 2)
+            cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), color, 2)
             cv2.putText(image, name, (box[0], box[1] - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, [225, 255, 255], thickness=2)
 
     end_time_end2end = time.time()
@@ -228,9 +237,9 @@ def run(session, model_path, img_path, use_cuda, end2end_times, run_times, visua
         print("Visualized result save in ./visualized_result.jpg")
 
 if __name__ == "__main__":
-    use_cuda = True
-    model_path = "/yolov7-lite-e.onnx"
-    img_path = '/sample.jpg'
+    use_cuda = False
+    model_path = "./yolov7-lite-e.onnx"
+    img_path = './sample.jpg'
     end2end_times = list()
     run_times = list()
     providers = ['CUDAExecutionProvider', 'CPUExecutionProvider'] if use_cuda else ['CPUExecutionProvider']
