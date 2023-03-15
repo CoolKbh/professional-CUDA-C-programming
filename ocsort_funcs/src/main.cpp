@@ -18,26 +18,30 @@ int main(int argc, char** argv) {
   int classid = 0; //类id，需要每一类单独一个OcSortTracker，否则不同类之间会匹配混乱
   OcSortTracker *octracker = new OcSortTracker(classid);
 
-  for (int i=0;i<2;i++) {
-    cv::Mat dets(4,6,CV_32FC1,rects);
+  for (int i=0;i<900;i++) {
+    cv::Mat dets;
+    cv::FileStorage fs("src_mat.xml", cv::FileStorage::READ);
+    fs["frame"+std::to_string(fdtracker->frame_id)] >> dets;
     octracker->update(dets, true, false);
     printf("\n step %d trackers number :%d\n", i, octracker->trackers.size());
     //return [class, id, xmin, ymin, xmax, ymax]*n
     cv::Mat trks = octracker->get_trackers();
+    cv::FileStorage fs1("det_mat.xml", cv::FileStorage::APPEND);
+    fs1 << "frame"+std::to_string(i) << trks;
     printmat(trks);
   };
 
-  float rects2[]={0, 0.9, 120,120,220,220,
-                0, 0.9, 320,320,420,420,
-                0, 0.2, 300,300,400,400,
-                0, 0.7, 180,180,280,280};
-  for (int i=0;i<1;i++) {
-    cv::Mat dets(4,6,CV_32FC1,rects2);
-    octracker->update(dets, true, false);
-    printf("\n step %d trackers number :%d\n", i+2, octracker->trackers.size());
-    cv::Mat trks = octracker->get_trackers();
-    printmat(trks);
-  };
+  // float rects2[]={0, 0.9, 120,120,220,220,
+  //               0, 0.9, 320,320,420,420,
+  //               0, 0.2, 300,300,400,400,
+  //               0, 0.7, 180,180,280,280};
+  // for (int i=0;i<1;i++) {
+  //   cv::Mat dets(4,6,CV_32FC1,rects2);
+  //   octracker->update(dets, true, false);
+  //   printf("\n step %d trackers number :%d\n", i+2, octracker->trackers.size());
+  //   cv::Mat trks = octracker->get_trackers();
+  //   printmat(trks);
+  // };
 
   for( int i=0;i<octracker->trackers.size();i++) {
     auto history = octracker->trackers[i]->observations;
